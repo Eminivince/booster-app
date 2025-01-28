@@ -18,10 +18,16 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Stack,
+  Tooltip,
+  IconButton,
+  // ArrowBackIcon,
 } from "@mui/material";
 import TokenIcon from "@mui/icons-material/Token";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 function TokensPage() {
   const [tokens, setTokens] = useState([]);
@@ -85,84 +91,139 @@ function TokensPage() {
     }
   };
 
+  // Handle copying text to clipboard
+  const handleCopy = (text, label) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setStatusMessage({
+          type: "success",
+          message: `${label} copied to clipboard!`,
+        });
+      })
+      .catch((err) => {
+        console.error("Could not copy text: ", err);
+        setStatusMessage({
+          type: "error",
+          message: `Failed to copy ${label}.`,
+        });
+      });
+  };
+
   return (
-    <Container maxWidth="md" sx={{ mt: 8, mb: 8 }}>
-      <Paper elevation={6} sx={{ p: 4 }}>
-        <Box display="flex" alignItems="center" mb={2}>
-          <TokenIcon color="primary" sx={{ fontSize: 40, mr: 1 }} />
-          <Typography variant="h5" component="h2">
-            Manage Tokens
+    <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
+      <Paper elevation={6} sx={{ p: { xs: 2, sm: 4 }, width: "100%" }}>
+        <Stack spacing={2}>
+          {/* Header */}
+          <Box display="flex" alignItems="center">
+            <TokenIcon color="primary" sx={{ fontSize: 40, mr: 1 }} />
+            <Typography variant="h5" component="h2">
+              Manage Tokens
+            </Typography>
+          </Box>
+
+          {/* Status Message */}
+          {statusMessage.message && (
+            <Alert
+              severity={statusMessage.type}
+              sx={{ wordBreak: "break-word" }}>
+              {statusMessage.message}
+            </Alert>
+          )}
+
+          {/* Add Token Form */}
+          <Box component="form" onSubmit={handleAddToken} noValidate>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                required
+                fullWidth
+                id="newTokenAddress"
+                label="Contract Address"
+                name="newTokenAddress"
+                placeholder="Enter contract address"
+                value={newTokenAddress}
+                onChange={(e) => setNewTokenAddress(e.target.value)}
+                disabled={!user}
+                variant="outlined"
+                size="small"
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                startIcon={<AddCircleIcon />}
+                disabled={!user}
+                sx={{ height: { xs: "auto", sm: "56px" } }}>
+                Add Token
+              </Button>
+            </Stack>
+          </Box>
+
+          {/* Tokens List */}
+          <Typography variant="h6" gutterBottom>
+            Your Tokens:
           </Typography>
-        </Box>
+          <List>
+            {tokens.map((t) => (
+              <ListItem
+                key={t._id}
+                secondaryAction={
+                  !t.isActive && (
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => handleActivate(t._id)}
+                      startIcon={<CheckCircleIcon />}
+                      size="small">
+                      Activate
+                    </Button>
+                  )
+                }
+                sx={{
+                  border: "1px solid #e0e0e0",
+                  borderRadius: "8px",
+                  mb: 1,
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                }}>
+                <Box display="flex" alignItems="center" width="100%">
+                  <ListItemIcon sx={{ minWidth: "40px" }}>
+                    <TokenIcon color={t.isActive ? "success" : "action"} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ wordBreak: "break-all" }}>
+                        {t.symbol} ({t.name})
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography
+                        variant="body2"
+                        sx={{ wordBreak: "break-all" }}>
+                        {t.isActive ? "Active" : "Inactive"}
+                      </Typography>
+                    }
+                  />
+                </Box>
+                {/* Optionally, add copy buttons for addresses or other details */}
+              </ListItem>
+            ))}
+          </List>
 
-        {statusMessage.message && (
-          <Alert severity={statusMessage.type} sx={{ mb: 2 }}>
-            {statusMessage.message}
-          </Alert>
-        )}
-
-        <Box component="form" onSubmit={handleAddToken} noValidate>
-          <Box display="flex" alignItems="center" mb={2}>
-            <TextField
-              required
-              fullWidth
-              id="newTokenAddress"
-              label="Contract Address"
-              name="newTokenAddress"
-              placeholder="Enter contract address"
-              value={newTokenAddress}
-              onChange={(e) => setNewTokenAddress(e.target.value)}
-              disabled={!user}
-            />
+          {/* Back to Home Button */}
+          <Box display="flex" justifyContent="center">
             <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              sx={{ ml: 2, height: "56px" }}
-              startIcon={<AddCircleIcon />}
-              disabled={!user}>
-              Add Token
+              variant="outlined"
+              color="secondary"
+              onClick={() => navigate("/")}
+              startIcon={<ArrowBackIcon />}
+              fullWidth>
+              Back to Home
             </Button>
           </Box>
-        </Box>
-
-        <Typography variant="h6" gutterBottom>
-          Your Tokens:
-        </Typography>
-        <List>
-          {tokens.map((t) => (
-            <ListItem
-              key={t._id}
-              secondaryAction={
-                !t.isActive && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => handleActivate(t._id)}
-                    startIcon={<CheckCircleIcon />}>
-                    Activate
-                  </Button>
-                )
-              }>
-              <ListItemIcon>
-                <TokenIcon color={t.isActive ? "success" : "action"} />
-              </ListItemIcon>
-              <ListItemText
-                primary={`${t.symbol} (${t.name})`}
-                secondary={t.isActive ? "Active" : "Inactive"}
-              />
-            </ListItem>
-          ))}
-        </List>
-
-        <Box display="flex" justifyContent="center" mt={4}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => navigate("/")}>
-            Back to Home
-          </Button>
-        </Box>
+        </Stack>
       </Paper>
     </Container>
   );
