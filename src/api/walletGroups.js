@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5080/api";
-const API_BASE = "http://localhost:5080/api";
+const API_BASE = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com/api";
 
 export async function getWalletGroups(chatId) {
   const res = await axios.get(`${API_BASE}/wallet-groups?chatId=${chatId}`);
@@ -33,7 +33,6 @@ export async function activateWalletGroup(chatId, groupId) {
   return res.data;
 }
 
-
 // 1) View the active wallet group (no groupId)
 export async function viewWalletGroup(chatId) {
   const res = await axios.get(`${API_BASE}/view-wallet-group?chatId=${chatId}`);
@@ -43,6 +42,8 @@ export async function viewWalletGroup(chatId) {
 // 2) View a specific wallet group by ID
 export async function viewWalletGroupById(chatId, groupId) {
   // we assume an endpoint like GET /api/view-wallet-group/:groupId?chatId=...
-  const res = await axios.get(`${API_BASE}/view-wallet-group/${groupId}?chatId=${chatId}`);
+  const res = await axios.get(
+    `${API_BASE}/view-wallet-group/${groupId}?chatId=${chatId}`
+  );
   return res.data; // the requested group's details
 }

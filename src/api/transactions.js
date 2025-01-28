@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5080/api";
-const API_BASE = "http://localhost:5080/api";
+const API_BASE = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com/api";
 
 export async function distributeAMB(chatId, amount) {
   const res = await axios.post(`${API_BASE}/distribute`, {
