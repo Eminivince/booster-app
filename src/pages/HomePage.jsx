@@ -44,9 +44,7 @@ function HomePage() {
         setActiveToken(token);
       } catch (err) {
         console.error("Error fetching active group/token:", err);
-        setError(
-          "Could not fetch active group/token. Please create a wallet group first."
-        );
+        setError("Could not fetch active group/token. Please try again.");
       } finally {
         setLoading(false); // Set loading to false after fetching
       }
