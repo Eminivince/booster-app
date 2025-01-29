@@ -34,13 +34,30 @@ export async function burnAMB(chatId, burnAmount) {
  * @param {Object} timeRange - { minDelayMinutes, maxDelayMinutes }
  * @returns {Promise<Object>} - The response containing successCount and failCount.
  */
-export async function startBuy(chatId, buyDetails, timeRange) {
-  const res = await axios.post(`${API_BASE}/buy`, {
-    chatId,
-    buyDetails, // Array of { walletAddress, amount }
-    timeRange, // { minDelayMinutes, maxDelayMinutes }
-  });
-  return res.data; // e.g., { message, successCount, failCount }
+// export async function startBuy(chatId, buyDetails, timeRange) {
+//   const res = await axios.post(`${API_BASE}/buy`, {
+//     chatId,
+//     buyDetails, // Array of { walletAddress, amount }
+//     timeRange, // { minDelayMinutes, maxDelayMinutes }
+//   });
+//   return res.data; // e.g., { message, successCount, failCount }
+// }
+
+export async function startBuy(chatId, buyDetails, timeRange, token) {
+  const res = await axios.post(
+    `${API_BASE}/buy`,
+    {
+      chatId,
+      buyDetails,
+      timeRange,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`, // Adjust based on your auth setup
+      },
+    }
+  );
+  return res.data;
 }
 
 export async function startSell(chatId, sellTimerInterval) {

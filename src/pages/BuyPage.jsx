@@ -1,4 +1,5 @@
 // frontend/src/pages/BuyPage.js
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -17,17 +18,84 @@ import {
   Alert,
   Box,
   Grid,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
 } from "@mui/material";
+
+import { io } from "socket.io-client";
+
+const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com"; 
 
 function BuyPage() {
   const [walletGroup, setWalletGroup] = useState(null);
   const [buyAmounts, setBuyAmounts] = useState({});
-  const [timeRange, setTimeRange] = useState({ min: 2, max: 30 }); // in minutes
+  const [timeRange, setTimeRange] = useState({
+    minDelayMinutes: 2,
+    maxDelayMinutes: 30,
+  }); // in minutes
   const [result, setResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [transactions, setTransactions] = useState([]);
 
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get the logged-in user from context
+  const { user, token } = useAuth(); // Get the logged-in user and token from context
+
+  useEffect(() => {
+    let socket;
+
+    // Function to initialize Socket.IO and fetch wallet group
+    const initialize = async () => {
+      if (!user) return;
+
+      try {
+        // Initialize Socket.IO client
+        socket = io(SOCKET_SERVER_URL, {
+          auth: {
+            token: token, // If your backend requires authentication
+          },
+        });
+
+        // Listen for connection errors
+        socket.on("connect_error", (err) => {
+          console.error("Socket connection error:", err.message);
+        });
+
+        // Join the room with chatId
+        socket.emit("join", user.chatId);
+
+        // Listen for buy transaction updates
+        socket.on("buyTransactionUpdate", (data) => {
+          setTransactions((prev) => [...prev, data]);
+        });
+
+        // Listen for buy process completion
+        socket.on("buyProcessCompleted", (data) => {
+          setResult(
+            `Buy process completed.\nSuccess: ${data.successCount}, Fail: ${data.failCount}`
+          );
+          setIsLoading(false);
+        });
+
+        // Fetch the active wallet group
+        await fetchWalletGroup();
+      } catch (err) {
+        console.error("Initialization error:", err);
+        setResult("Initialization error occurred.");
+      }
+    };
+
+    initialize();
+
+    // Cleanup on component unmount
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, token]);
 
   // Fetch the active wallet group
   const fetchWalletGroup = async () => {
@@ -36,7 +104,7 @@ function BuyPage() {
       const group = await getActiveWalletGroup(user.chatId);
       setWalletGroup(group);
 
-      // Initialize buyAmounts with default values (e.g., 0)
+      // Initialize buyAmounts with default values (e.g., empty strings)
       const initialAmounts = {};
       group.wallets.forEach((wallet) => {
         initialAmounts[wallet.address] = "";
@@ -47,15 +115,6 @@ function BuyPage() {
       setResult("Error fetching wallet group.");
     }
   };
-
-  useEffect(() => {
-    if (!user) {
-      // Redirect to login if not authenticated
-      navigate("/login");
-      return;
-    }
-    fetchWalletGroup();
-  }, [user, navigate]);
 
   // Handle buy amount change for a specific wallet
   const handleAmountChange = (address, value) => {
@@ -70,7 +129,7 @@ function BuyPage() {
     const { name, value } = e.target;
     setTimeRange((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: Number(value),
     }));
   };
 
@@ -91,15 +150,21 @@ function BuyPage() {
     }
 
     // Validate time range
-    const min = Number(timeRange.min);
-    const max = Number(timeRange.max);
-    if (isNaN(min) || isNaN(max) || min <= 0 || max <= 0 || min > max) {
+    const { minDelayMinutes, maxDelayMinutes } = timeRange;
+    if (
+      isNaN(minDelayMinutes) ||
+      isNaN(maxDelayMinutes) ||
+      minDelayMinutes <= 0 ||
+      maxDelayMinutes <= 0 ||
+      minDelayMinutes > maxDelayMinutes
+    ) {
       setResult("Please enter a valid time range (min ≤ max, both > 0).");
       return;
     }
 
     setIsLoading(true);
     setResult("");
+    setTransactions([]); // Reset previous transactions
 
     try {
       // Prepare payload: array of { walletAddress, amount }
@@ -108,21 +173,24 @@ function BuyPage() {
         amount: buyAmounts[wallet.address],
       }));
 
-      const resp = await startBuy(user.chatId, buyDetails, {
-        minDelayMinutes: min,
-        maxDelayMinutes: max,
-      });
-
-      setResult(
-        `Buy process initiated.\nSuccess: ${resp.successCount}, Fail: ${resp.failCount}`
+      // Initiate the buy process using authenticated user data
+      await startBuy(
+        user.chatId,
+        buyDetails,
+        {
+          minDelayMinutes: minDelayMinutes,
+          maxDelayMinutes: maxDelayMinutes,
+        },
+        token
       );
+
+      // No need to set result here; it will be updated via WebSocket
     } catch (err) {
       console.error("Error starting buy:", err);
       setResult(
         err.response?.data?.error ||
           "An error occurred while starting the buy process."
       );
-    } finally {
       setIsLoading(false);
     }
   };
@@ -159,7 +227,7 @@ function BuyPage() {
         {result && (
           <Alert
             severity={
-              result.startsWith("Buy process initiated") ? "success" : "error"
+              result.startsWith("Buy process completed") ? "success" : "info"
             }
             sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
             {result}
@@ -197,10 +265,10 @@ function BuyPage() {
               <Grid item xs={12} sm={6}>
                 <TextField
                   label="Min (minutes)"
-                  name="min"
+                  name="minDelayMinutes"
                   type="number"
                   inputProps={{ min: "1" }}
-                  value={timeRange.min}
+                  value={timeRange.minDelayMinutes}
                   onChange={handleTimeRangeChange}
                   required
                   fullWidth
@@ -210,10 +278,10 @@ function BuyPage() {
               <Grid item xs={12} sm={6}>
                 <TextField
                   label="Max (minutes)"
-                  name="max"
+                  name="maxDelayMinutes"
                   type="number"
                   inputProps={{ min: "1" }}
-                  value={timeRange.max}
+                  value={timeRange.maxDelayMinutes}
                   onChange={handleTimeRangeChange}
                   required
                   fullWidth
@@ -249,10 +317,45 @@ function BuyPage() {
           color="secondary"
           fullWidth
           onClick={() => navigate("/")}
-          sx={{ mt: 4 }}
-          >
+          sx={{ mt: 4 }}>
           Back to Home
         </Button>
+
+        {transactions.length > 0 && (
+          <Box mt={4}>
+            <Typography variant="h6" gutterBottom>
+              Transaction Updates
+            </Typography>
+            <List>
+              {transactions.map((tx, index) => (
+                <ListItem key={index} divider>
+                  <ListItemText
+                    primary={`Wallet: ${tx.wallet}`}
+                    secondary={
+                      tx.status === "success"
+                        ? `✅ Success: Bought tokens. Tx Hash: ${tx.txHash}`
+                        : tx.status === "failed"
+                        ? `❌ Failed to buy tokens.`
+                        : tx.status === "error"
+                        ? `❗ Error: ${tx.error}`
+                        : `⚠️ ${tx.status.replace("_", " ").toUpperCase()}`
+                    }
+                  />
+                  {tx.status === "success" && (
+                    <Chip label="Success" color="success" />
+                  )}
+                  {tx.status === "failed" && (
+                    <Chip label="Failed" color="error" />
+                  )}
+                  {tx.status === "error" && (
+                    <Chip label="Error" color="error" />
+                  )}
+                  {/* Add more chips if needed for other statuses */}
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
       </Paper>
     </Container>
   );
