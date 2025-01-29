@@ -1,5 +1,6 @@
 // frontend/src/pages/DistributePage.js
-import React, { useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { distributeAMB } from "../api/transactions";
@@ -15,17 +16,78 @@ import {
   CircularProgress,
   Alert,
   Box,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
 } from "@mui/material";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+
+import { io } from "socket.io-client";
+
+const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com";
 
 function DistributePage() {
   const [amount, setAmount] = useState("");
   const [result, setResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [transactions, setTransactions] = useState([]);
 
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get the logged-in user from context
+  const { user, token } = useAuth(); // Get the logged-in user and token from context
 
+  useEffect(() => {
+    let socket;
+
+    // Function to initialize Socket.IO and setup event listeners
+    const initializeSocket = () => {
+      if (user && token) {
+        // Initialize Socket.IO client
+        socket = io(SOCKET_SERVER_URL, {
+          auth: {
+            token: token, // If your backend requires authentication
+          },
+        });
+
+        // Handle connection errors
+        socket.on("connect_error", (err) => {
+          console.error("Socket connection error:", err.message);
+        });
+
+        // Join the room with chatId
+        socket.emit("join", user.chatId);
+
+        // Listen for distribute transaction updates
+        socket.on("distributeTransactionUpdate", (data) => {
+          setTransactions((prev) => [...prev, data]);
+        });
+
+        // Listen for distribute process completion
+        socket.on("distributeProcessCompleted", (data) => {
+          setResult(
+            `Distribution process completed.\nSuccess: ${data.successCount}, Fail: ${data.failCount}`
+          );
+          setIsLoading(false);
+        });
+      }
+    };
+
+    initializeSocket();
+
+    // Cleanup on component unmount
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [user, token]);
+
+  // Handle amount change
+  const handleAmountChange = (e) => {
+    setAmount(e.target.value);
+  };
+
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -41,18 +103,17 @@ function DistributePage() {
 
     setIsLoading(true);
     setResult("");
+    setTransactions([]); // Reset previous transactions
 
     try {
-      const resp = await distributeAMB(user.chatId, amount.trim());
-      setResult(
-        `Distribution completed.\nSuccess: ${resp.successCount}, Fail: ${resp.failCount}`
-      );
+      // Initiate the distribute process
+      await distributeAMB(user.chatId, amount.trim(), token);
+      // No need to set result here; it will be updated via Socket.IO events
     } catch (err) {
       console.error("Error distributing AMB:", err);
       setResult(
         err.response?.data?.error || "An error occurred while distributing AMB."
       );
-    } finally {
       setIsLoading(false);
     }
   };
@@ -93,7 +154,9 @@ function DistributePage() {
         {result && (
           <Alert
             severity={
-              result.startsWith("Distribution completed") ? "success" : "error"
+              result.startsWith("Distribution process completed")
+                ? "success"
+                : "error"
             }
             sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
             {result}
@@ -111,7 +174,7 @@ function DistributePage() {
             inputProps={{ step: "0.0001", min: "0" }}
             margin="normal"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={handleAmountChange}
             disabled={isLoading}
           />
           <Button
@@ -135,6 +198,42 @@ function DistributePage() {
           disabled={isLoading}>
           Back to Home
         </Button>
+
+        {transactions.length > 0 && (
+          <Box mt={4}>
+            <Typography variant="h6" gutterBottom>
+              Transaction Updates
+            </Typography>
+            <List>
+              {transactions.map((tx, index) => (
+                <ListItem key={index} divider>
+                  <ListItemText
+                    primary={`Wallet: ${tx.wallet}`}
+                    secondary={
+                      tx.status === "success"
+                        ? `✅ Success: Distributed AMB. Tx Hash: ${tx.txHash}`
+                        : tx.status === "failed"
+                        ? `❌ Failed to distribute AMB.`
+                        : tx.status === "error"
+                        ? `❗ Error: ${tx.error}`
+                        : `⚠️ ${tx.status.replace("_", " ").toUpperCase()}`
+                    }
+                  />
+                  {tx.status === "success" && (
+                    <Chip label="Success" color="success" />
+                  )}
+                  {tx.status === "failed" && (
+                    <Chip label="Failed" color="error" />
+                  )}
+                  {tx.status === "error" && (
+                    <Chip label="Error" color="error" />
+                  )}
+                  {/* Add more chips if needed for other statuses */}
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
       </Paper>
     </Container>
   );
