@@ -51,11 +51,6 @@ export async function startBuy(chatId, buyDetails, timeRange, token) {
       buyDetails,
       timeRange,
     },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`, // Adjust based on your auth setup
-      },
-    }
   );
   return res.data;
 }
