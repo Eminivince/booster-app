@@ -71,7 +71,7 @@ function BurnPage() {
     }
 
     const fetchedToken = await getActiveToken(user.chatId);
-    setActiveToken(fetchedToken);
+          setActiveToken(fetchedToken);
 
     if (!fetchedToken) {
       setResult({ type: "error", message: "No active token selected." });

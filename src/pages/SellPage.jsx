@@ -1,5 +1,5 @@
 // frontend/src/pages/SellPage.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { startSell } from "../api/transactions"; // Ensure this function is correctly implemented to handle authenticated requests
@@ -14,19 +14,67 @@ import {
   TextField,
   Button,
   CircularProgress,
-  Alert, 
+  Alert,
   Box,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
 } from "@mui/material";
 import SellIcon from "@mui/icons-material/Sell";
+
+import { io } from "socket.io-client";
+
+const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com"; // Replace with your backend URL
 
 function SellPage() {
   const [interval, setIntervalVal] = useState("");
   const [result, setResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [transactions, setTransactions] = useState([]);
 
   const navigate = useNavigate();
   const { user, token } = useAuth(); // Access user and token from AuthContext
   const [activeToken, setActiveToken] = useState(null);
+
+  useEffect(() => {
+    let socket;
+
+    if (user) {
+      // Initialize Socket.IO client
+      socket = io(SOCKET_SERVER_URL, {
+        auth: {
+          token: token, // If your backend requires authentication
+        },
+      });
+
+      // Join the room with chatId
+      socket.emit("join", user.chatId);
+
+      // Listen for transaction updates
+      socket.on("transactionUpdate", (data) => {
+        setTransactions((prev) => [...prev, data]);
+      });
+
+      // Listen for sell process completion
+      socket.on("sellProcessCompleted", (data) => {
+        setResult(
+          `Sell process completed.\nSuccess: ${data.successCount}, Fail: ${data.failCount}`
+        );
+        setIsLoading(false);
+      });
+
+      // Handle connection errors
+      socket.on("connect_error", (err) => {
+        console.error("Connection Error:", err.message);
+      });
+    }
+
+    // Cleanup on component unmount
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [user, token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,17 +104,12 @@ function SellPage() {
 
       setIsLoading(true);
       setResult("Executing sell process...");
+      setTransactions([]); // Reset previous transactions
 
       // Initiate the sell process using authenticated user data
-      const resp = await startSell(
-        user.chatId,
-        timerIntervalNumber,
-        fetchedToken,
-        token
-      );
-      setResult(
-        `Sell process complete.\nSuccess: ${resp.successCount}, Fail: ${resp.failCount}`
-      );
+      await startSell(user.chatId, timerIntervalNumber, token);
+
+      // No need to set result here; it will be updated via WebSocket
     } catch (err) {
       console.error("Error starting sell", err);
       // Display specific error message if available
@@ -75,7 +118,6 @@ function SellPage() {
       } else {
         setResult("Error starting sell.");
       }
-    } finally {
       setIsLoading(false);
     }
   };
@@ -116,7 +158,7 @@ function SellPage() {
         {result && (
           <Alert
             severity={
-              result.startsWith("Sell process complete") ? "success" : "error"
+              result.startsWith("Sell process completed") ? "success" : "info"
             }
             sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
             {result}
@@ -145,7 +187,7 @@ function SellPage() {
             disabled={isLoading}
             sx={{ mt: 3, mb: 2 }}
             startIcon={isLoading && <CircularProgress size={20} />}>
-            {isLoading ? "Distributing..." : "Start Sell"}
+            {isLoading ? "Executing..." : "Start Sell"}
           </Button>
         </Box>
 
@@ -158,6 +200,44 @@ function SellPage() {
           disabled={isLoading}>
           Back to Home
         </Button>
+
+        {transactions.length > 0 && (
+          <Box mt={4}>
+            <Typography variant="h6" gutterBottom>
+              Transaction Updates
+            </Typography>
+            <List>
+              {transactions.map((tx, index) => (
+                <ListItem key={index} divider>
+                  <ListItemText
+                    primary={`Wallet: ${tx.wallet}`}
+                    secondary={
+                      tx.status === "success"
+                        ? `✅ Success: Sold ${tx.amount} tokens. Tx Hash: ${tx.txHash}`
+                        : tx.status === "failed"
+                        ? `❌ Failed to sell tokens.`
+                        : tx.status === "no_token"
+                        ? `⚠️ No tokens to sell.`
+                        : `❗ Error: ${tx.error}`
+                    }
+                  />
+                  {tx.status === "success" && (
+                    <Chip label="Success" color="success" />
+                  )}
+                  {tx.status === "failed" && (
+                    <Chip label="Failed" color="error" />
+                  )}
+                  {tx.status === "no_token" && (
+                    <Chip label="No Tokens" color="warning" />
+                  )}
+                  {tx.status === "error" && (
+                    <Chip label="Error" color="error" />
+                  )}
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
       </Paper>
     </Container>
   );
