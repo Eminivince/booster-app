@@ -3,6 +3,10 @@
     {
       "source": "/api/(.*)",
       "destination": "https://bknd-node-deploy-d242c366d3a5.herokuapp.com/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
     }
   ]
 }
