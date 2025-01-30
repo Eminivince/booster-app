@@ -26,7 +26,7 @@ import {
 
 import { io } from "socket.io-client";
 
-const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com"; 
+const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com";
 
 function BuyPage() {
   const [walletGroup, setWalletGroup] = useState(null);
