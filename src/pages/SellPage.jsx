@@ -436,20 +436,7 @@ function SellPage() {
                         : tx.status === "failed"
                         ? `❌ Failed to sell tokens.`
                         : tx.status === "error"
-                        ? `❗ Error: Transaction reverted.\n- From: ${tx.transaction.from.slice(
-                            0,
-                            6
-                          )}...${tx.transaction.from.slice(
-                            -4
-                          )}\n- To: ${tx.transaction.to.slice(
-                            0,
-                            6
-                          )}...${tx.transaction.to.slice(
-                            -4
-                          )}\n- Tx Hash: ${tx.receipt.hash.slice(
-                            0,
-                            6
-                          )}...${tx.receipt.hash.slice(-4)}\n- Status: Failed`
+                        ? `❗ Error: Transaction reverted.`
                         : `⚠️ ${tx.status.replace("_", " ").toUpperCase()}`
                     }
                   />
