@@ -13,12 +13,21 @@ export function AuthProvider({ children }) {
 
   // Whenever user changes, save to localStorage
   useEffect(() => {
-    if (user) localStorage.setItem("myapp-user", JSON.stringify(user));
-    else localStorage.removeItem("myapp-user");
+    if (user) {
+      localStorage.setItem("myapp-user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("myapp-user");
+    }
   }, [user]);
 
+  // The logout function clears the user state and removes it from localStorage
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("myapp-user");
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ user, setUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -19,7 +19,7 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import TokenIcon from "@mui/icons-material/Token";
 
 function HomePage() {
-  const { user } = useAuth(); // Get the logged-in user object
+  const { user, logout } = useAuth(); // Get the logged-in user object and logout function
   const navigate = useNavigate(); // For navigation if needed
 
   const [activeGroup, setActiveGroup] = useState(null);
@@ -53,11 +53,26 @@ function HomePage() {
     fetchData();
   }, [user, navigate]);
 
-  // If user is not logged in, component will have navigated to /login
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      {/* Main menu (if any) */}
       <MainMenu />
+
+      {/* Logout Button */}
+      <Box display="flex" justifyContent="flex-end" mb={2} mt={2}>
+        <Button variant="outlined" color="error" onClick={handleLogout}>
+          Logout
+        </Button>
+      </Box>
 
       {loading ? (
         <Box
