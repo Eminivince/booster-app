@@ -1,12 +1,14 @@
 // frontend/src/pages/SellPage.js
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ethers } from "ethers";
 
-import { startSell } from "../api/transactions"; // Make sure this function accepts sellDetails and timeRange
+import { startSell } from "../api/transactions"; // Ensure this function accepts sellDetails and timeRange
 import { useAuth } from "../context/AuthContext";
 import { getActiveWalletGroup } from "../api/walletGroups"; // Using wallet groups for sell amounts
+import { getActiveToken } from "../api/tokens";
 
-// Import MUI Components
+// MUI Components
 import {
   Container,
   Paper,
@@ -21,16 +23,27 @@ import {
   ListItem,
   ListItemText,
   Chip,
+  InputAdornment,
 } from "@mui/material";
 import SellIcon from "@mui/icons-material/Sell";
-
 import { io } from "socket.io-client";
 
 const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com";
 
+// Minimal ERC20 ABI to read balance and decimals
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+];
+
+// Create an ethers provider using your RPC URL
+const provider = new ethers.JsonRpcProvider("https://network.ambrosus.io");
+
 function SellPage() {
   const [walletGroup, setWalletGroup] = useState(null);
   const [sellAmounts, setSellAmounts] = useState({});
+  const [walletBalances, setWalletBalances] = useState({});
+  const [activeToken, setActiveToken] = useState(null);
   const [timeRange, setTimeRange] = useState({
     minDelayMinutes: 2,
     maxDelayMinutes: 30,
@@ -42,19 +55,15 @@ function SellPage() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
 
+  // Initialize Socket.IO and fetch wallet group on mount
   useEffect(() => {
     let socket;
-
     const initialize = async () => {
       if (!user) return;
-
       try {
         // Initialize Socket.IO client with authentication
-        socket = io(SOCKET_SERVER_URL, {
-          auth: { token },
-        });
+        socket = io(SOCKET_SERVER_URL, { auth: { token } });
 
-        // Listen for connection errors
         socket.on("connect_error", (err) => {
           console.error("Socket connection error:", err.message);
         });
@@ -75,8 +84,9 @@ function SellPage() {
           setIsLoading(false);
         });
 
-        // Fetch the active wallet group to list wallets for sell inputs
+        // Fetch wallet group and active token
         await fetchWalletGroup();
+        await fetchActiveToken();
       } catch (err) {
         console.error("Initialization error:", err);
         setResult("Initialization error occurred.");
@@ -84,14 +94,20 @@ function SellPage() {
     };
 
     initialize();
-
-    // Cleanup on component unmount
     return () => {
       if (socket) socket.disconnect();
     };
   }, [user, token]);
 
-  // Fetch the active wallet group
+  // After walletGroup and activeToken are loaded, fetch balances for each wallet.
+  useEffect(() => {
+    if (walletGroup && activeToken) {
+      fetchWalletBalances();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletGroup, activeToken]);
+
+  // Fetch the active wallet group and initialize sellAmounts
   const fetchWalletGroup = async () => {
     if (!user?.chatId) return;
     try {
@@ -110,12 +126,68 @@ function SellPage() {
     }
   };
 
+  // Fetch the active token details
+  const fetchActiveToken = async () => {
+    try {
+      const tokenData = await getActiveToken(user.chatId);
+      setActiveToken(tokenData);
+    } catch (err) {
+      console.error("Error fetching active token:", err);
+      setResult("Error fetching active token.");
+    }
+  };
+
+  // For each wallet, fetch its token balance from the blockchain
+  const fetchWalletBalances = async () => {
+    const balances = {};
+    try {
+      const tokenContract = new ethers.Contract(
+        activeToken.address,
+        ERC20_ABI,
+        provider
+      );
+      // Use activeToken.decimals if available, or fetch from the contract
+      const decimals =
+        activeToken.decimals || Number(await tokenContract.decimals());
+      // Loop through each wallet in the group and fetch its balance
+      for (const wallet of walletGroup.wallets) {
+        const balBN = await tokenContract.balanceOf(wallet.address);
+        const bal = ethers.formatUnits(balBN, decimals);
+        balances[wallet.address] = bal;
+      }
+      setWalletBalances(balances);
+    } catch (err) {
+      console.error("Error fetching wallet balances:", err);
+    }
+  };
+
   // Handle sell amount change for a specific wallet
   const handleAmountChange = (address, value) => {
     setSellAmounts((prev) => ({
       ...prev,
       [address]: value,
     }));
+  };
+
+  // Handle setting the input to the maximum balance for a wallet
+  const handleMax = (address) => {
+    if (walletBalances[address]) {
+      setSellAmounts((prev) => ({
+        ...prev,
+        [address]: walletBalances[address],
+      }));
+    }
+  };
+
+  // Handle setting the input to 50% of the wallet balance
+  const handleHalf = (address) => {
+    if (walletBalances[address]) {
+      const half = (parseFloat(walletBalances[address]) / 2).toString();
+      setSellAmounts((prev) => ({
+        ...prev,
+        [address]: half,
+      }));
+    }
   };
 
   // Handle time range change
@@ -168,7 +240,6 @@ function SellPage() {
       }));
 
       // Initiate the sell process using authenticated user data.
-      // The startSell API should be updated on the backend to process sellDetails and a timeRange.
       await startSell(
         user.chatId,
         sellDetails,
@@ -181,18 +252,12 @@ function SellPage() {
 
       // No need to set result here; updates will arrive via Socket.IO
     } catch (err) {
-      if (
-        err.code != "ERR_NETWORK" ||
-        err.message != "Network Error" ||
-        err.name != "AxiosError"
-      ) {
-        console.error("Error starting sell:", err);
-        setResult(
-          err.response?.data?.error ||
-            "An error occurred while starting the sell process."
-        );
-        setIsLoading(false);
-      }
+      console.error("Error starting sell:", err);
+      setResult(
+        err.response?.data?.error ||
+          "An error occurred while starting the sell process."
+      );
+      setIsLoading(false);
     }
   };
 
@@ -245,16 +310,42 @@ function SellPage() {
               {walletGroup.wallets.map((wallet) => (
                 <Grid item xs={12} sm={6} key={wallet.address}>
                   <TextField
-                    label={wallet.address}
+                    label={`${wallet.address.toString().slice(0, 6)}... (${
+                      walletBalances[wallet.address]
+                        ? Number(walletBalances[wallet.address]).toFixed(8)
+                        : "loading..."
+                    } ${activeToken?.symbol || ""})`}
                     type="number"
                     inputProps={{ step: "0.0001", min: "0" }}
                     value={sellAmounts[wallet.address]}
                     onChange={(e) =>
                       handleAmountChange(wallet.address, e.target.value)
                     }
+                    placeholder={
+                      sellAmounts[wallet.address] ? "" : "Enter amount"
+                    }
                     required
                     fullWidth
                     disabled={isLoading}
+                    InputLabelProps={{
+                      shrink: !!sellAmounts[wallet.address], // This ensures the label does not overlap with the input text
+                    }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Button
+                            size="small"
+                            onClick={() => handleMax(wallet.address)}>
+                            Max
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => handleHalf(wallet.address)}>
+                            50%
+                          </Button>
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Grid>
               ))}
