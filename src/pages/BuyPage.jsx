@@ -186,12 +186,18 @@ function BuyPage() {
 
       // No need to set result here; it will be updated via WebSocket
     } catch (err) {
-      console.error("Error starting buy:", err);
-      setResult(
-        err.response?.data?.error ||
-          "An error occurred while starting the buy process."
-      );
-      setIsLoading(false);
+      if (
+        err.code != "ERR_NETWORK" ||
+        err.message != "Network Error" ||
+        err.name != "AxiosError"
+      ) {
+        console.error("Error starting buy:", err);
+        setResult(
+          err.response?.data?.error ||
+            "An error occurred while starting the buy process."
+        );
+        setIsLoading(false);
+      }
     }
   };
 

@@ -111,10 +111,18 @@ function DistributePage() {
       // No need to set result here; it will be updated via Socket.IO events
     } catch (err) {
       console.error("Error distributing AMB:", err);
-      setResult(
-        err.response?.data?.error || "An error occurred while distributing AMB."
-      );
-      setIsLoading(false);
+
+      if (
+        err.code != "ERR_NETWORK" ||
+        err.message != "Network Error" ||
+        err.name != "AxiosError"
+      ) {
+        setResult(
+          err.response?.data?.error ||
+            "An error occurred while distributing AMB."
+        );
+        setIsLoading(false);
+      }
     }
   };
 

@@ -181,12 +181,18 @@ function SellPage() {
 
       // No need to set result here; updates will arrive via Socket.IO
     } catch (err) {
-      console.error("Error starting sell:", err);
-      setResult(
-        err.response?.data?.error ||
-          "An error occurred while starting the sell process."
-      );
-      setIsLoading(false);
+      if (
+        err.code != "ERR_NETWORK" ||
+        err.message != "Network Error" ||
+        err.name != "AxiosError"
+      ) {
+        console.error("Error starting sell:", err);
+        setResult(
+          err.response?.data?.error ||
+            "An error occurred while starting the sell process."
+        );
+        setIsLoading(false);
+      }
     }
   };
 
