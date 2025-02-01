@@ -336,7 +336,7 @@ function BuyPage() {
               {transactions.map((tx, index) => (
                 <ListItem key={index} divider>
                   <ListItemText
-                    primary={`Wallet: ${tx.wallet}`}
+                    primary={`- ${index + 1} Wallet: ${tx.wallet}`}
                     secondary={
                       tx.status === "success"
                         ? `✅ Success: Bought tokens. Tx Hash: ${tx.txHash}`

@@ -44,21 +44,19 @@ export async function burnAMB(chatId, burnAmount) {
 // }
 
 export async function startBuy(chatId, buyDetails, timeRange, token) {
-  const res = await axios.post(
-    `${API_BASE}/buy`,
-    {
-      chatId,
-      buyDetails,
-      timeRange,
-    },
-  );
+  const res = await axios.post(`${API_BASE}/buy`, {
+    chatId,
+    buyDetails,
+    timeRange,
+  });
   return res.data;
 }
 
-export async function startSell(chatId, sellTimerInterval) {
+export async function startSell(chatId, sellDetails, timeRange, token) {
   const res = await axios.post(`${API_BASE}/sell`, {
     chatId,
-    sellTimerInterval,
+    sellDetails,
+    timeRange,
   });
   return res.data;
 }
