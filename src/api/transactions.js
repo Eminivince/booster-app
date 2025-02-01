@@ -9,13 +9,13 @@ export async function distributeAMB(chatId, amount) {
     chatId,
     amount,
   });
-  console.log(res.data);
+  // console.log(res.data);
   return res.data;
 }
 
 export async function collectFunds(chatId) {
   const res = await axios.post(`${API_BASE}/collect`, { chatId });
-  console.log(res.data);
+  // console.log(res.data);
   return res.data;
 }
 

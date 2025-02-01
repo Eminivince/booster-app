@@ -13,7 +13,7 @@ export async function getActiveWalletGroup(chatId) {
   const res = await axios.get(
     `${API_BASE}/wallet-groups/active?chatId=${chatId}`
   );
-  console.log(res.data);
+  // console.log(res.data);
   return res.data;
 }
 

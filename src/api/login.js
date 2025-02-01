@@ -9,6 +9,6 @@ const API_BASE = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com/api";
 export async function loginUser(chatId) {
   console.log("login in....", chatId);
   const res = await axios.post(`${API_BASE}/login`, { chatId });
-  console.log(res.data);
+  // console.log(res.data);
   return res.data; // { message, user: { _id, chatId, activeWalletGroupId, activeTokenId } }
 }

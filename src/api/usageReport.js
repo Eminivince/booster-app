@@ -12,6 +12,6 @@ export async function generateUsageReport(chatId, fromDate, toDate, userID) {
     { responseType: "arraybuffer" } // important to get binary data
   );
 
-  console.log(res.data);
+  // console.log(res.data);
   return res.data; // this is an ArrayBuffer representing the PDF
 }
