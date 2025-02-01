@@ -252,12 +252,18 @@ function SellPage() {
 
       // No need to set result here; updates will arrive via Socket.IO
     } catch (err) {
-      console.error("Error starting sell:", err);
-      setResult(
-        err.response?.data?.error ||
-          "An error occurred while starting the sell process."
-      );
-      setIsLoading(false);
+      if (
+        err.code != "ERR_NETWORK" ||
+        err.message != "Network Error" ||
+        err.name != "AxiosError"
+      ) {
+        console.error("Error starting sell:", err);
+        setResult(
+          err.response?.data?.error ||
+            "An error occurred while starting the sell process."
+        );
+        setIsLoading(false);
+      }
     }
   };
 
@@ -430,7 +436,20 @@ function SellPage() {
                         : tx.status === "failed"
                         ? `❌ Failed to sell tokens.`
                         : tx.status === "error"
-                        ? `❗ Error: ${tx.error}`
+                        ? `❗ Error: Transaction reverted.\n- From: ${tx.transaction.from.slice(
+                            0,
+                            6
+                          )}...${tx.transaction.from.slice(
+                            -4
+                          )}\n- To: ${tx.transaction.to.slice(
+                            0,
+                            6
+                          )}...${tx.transaction.to.slice(
+                            -4
+                          )}\n- Tx Hash: ${tx.receipt.hash.slice(
+                            0,
+                            6
+                          )}...${tx.receipt.hash.slice(-4)}\n- Status: Failed`
                         : `⚠️ ${tx.status.replace("_", " ").toUpperCase()}`
                     }
                   />
