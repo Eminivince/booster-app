@@ -210,7 +210,7 @@ function SellPage() {
 
     // Validate sell amounts: each must be a positive number
     const amounts = Object.values(sellAmounts);
-    if (amounts.some((amt) => !amt.trim() || isNaN(amt) || Number(amt) <= 0)) {
+    if (amounts.some((amt) => !amt.trim() || isNaN(amt))) {
       setResult("Please enter valid sell amounts for all wallets.");
       return;
     }
