@@ -429,7 +429,7 @@ function SellPage() {
               {transactions.map((tx, index) => (
                 <ListItem key={index} divider>
                   <ListItemText
-                    primary={`- ${index + 1} Wallet: ${tx.wallet}`}
+                    primary={`Wallet: ${tx.wallet}`}
                     secondary={
                       tx.status === "success"
                         ? `✅ Success: Sold tokens. Tx Hash: ${tx.txHash}`
