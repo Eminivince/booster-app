@@ -37,6 +37,7 @@ function ViewWalletGroupPage() {
   const [groupData, setGroupData] = useState(null);
   const [allWallets, setAllWallets] = useState(null);
   const [balanceArray, setBalanceArray] = useState([]);
+  const [allNativeBalance, setNativeBalanceArray] = useState([]);
   const [activeToken, setActiveToken] = useState(null);
   const [error, setError] = useState("");
   const [snackbar, setSnackbar] = useState({
@@ -92,7 +93,7 @@ function ViewWalletGroupPage() {
 
         let activeTokenAddress = data.address;
         let activeTokenName = data.name;
-        console.log(activeTokenName);
+
         setActiveToken(activeTokenName);
 
         const tokenContract = new ethers.Contract(
@@ -102,6 +103,7 @@ function ViewWalletGroupPage() {
         );
 
         let allBalance = [];
+        let allNativeBalance = [];
 
         if (allWallets) {
           for (let i = 0; i <= allWallets.length; i++) {
@@ -110,9 +112,15 @@ function ViewWalletGroupPage() {
               let bal = ethers.formatEther(Number(tx).toString());
               allBalance.push(bal);
 
+              const nativeBalance = await provider.getBalance(allWallets[i]);
+              let nativeBal = ethers.formatEther(nativeBalance);
+              allNativeBalance.push(nativeBal);
+
               if (allBalance.length == 20) {
                 setBalanceArray(allBalance);
-                console.log(allBalance);
+                setNativeBalanceArray(allNativeBalance);
+
+
                 break;
               }
             } catch (err) {
@@ -243,11 +251,18 @@ function ViewWalletGroupPage() {
                     />
                   </Box>
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    <strong>Balance:</strong>{" "}
+                    <strong>Token Bal:</strong>{" "}
                     {balanceArray.length > 0
-                      ? balanceArray[index]
+                      ? Number(balanceArray[index]).toFixed(7)
                       : "Loading..."}{" "}
                     - {activeToken}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    <strong>AMB Bal:</strong>{" "}
+                    {allNativeBalance.length > 0
+                      ? Number(allNativeBalance[index]).toFixed(7)
+                      : "Loading..."}{" "}
+                    - {"AMB"}
                   </Typography>
                 </ListItem>
               ))}
