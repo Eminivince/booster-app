@@ -54,6 +54,9 @@ function DistributePage() {
           console.error("Socket connection error:", err.message);
         });
 
+        socket.on("connect", () => {
+          console.log("Socket connected.");
+
         // Join the room with chatId
         socket.emit("join", user.chatId);
 
@@ -108,6 +111,7 @@ function DistributePage() {
 
     try {
       // Initiate the distribute process
+      console.log("Distributing AMB...");
       await distributeAMB(user.chatId, amount.trim(), token);
       // No need to set result here; it will be updated via Socket.IO events
     } catch (err) {
@@ -122,8 +126,9 @@ function DistributePage() {
           err.response?.data?.error ||
             "An error occurred while distributing AMB."
         );
-        setIsLoading(false);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
