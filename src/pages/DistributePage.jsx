@@ -55,7 +55,8 @@ function DistributePage() {
         });
 
         socket.on("connect", () => {
-          console.log("Socket connected.")});
+          console.log("Socket connected.");
+        });
 
         // Join the room with chatId
         socket.emit("join", user.chatId);
