@@ -1,8 +1,10 @@
 // frontend/src/pages/ViewWalletGroupPage.js
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ethers } from "ethers";
 
 import { viewWalletGroup, viewWalletGroupById } from "../api/walletGroups";
+import { getActiveToken } from "../api/tokens";
 import { useAuth } from "../context/AuthContext";
 
 // Import MUI Components
@@ -24,6 +26,8 @@ import {
 import GroupIcon from "@mui/icons-material/Group";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { all } from "axios";
+import tokenABI from "../assets/TokenABI";
 
 function ViewWalletGroupPage() {
   const { user } = useAuth(); // your logged-in user, containing chatId
@@ -31,11 +35,16 @@ function ViewWalletGroupPage() {
   const navigate = useNavigate();
 
   const [groupData, setGroupData] = useState(null);
+  const [allWallets, setAllWallets] = useState(null);
+  const [balanceArray, setBalanceArray] = useState([]);
+  const [activeToken, setActiveToken] = useState(null);
   const [error, setError] = useState("");
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
   });
+
+  const provider = new ethers.JsonRpcProvider("https://network.ambrosus.io");
 
   useEffect(() => {
     if (!user) {
@@ -63,6 +72,62 @@ function ViewWalletGroupPage() {
 
     fetchData();
   }, [user, groupId, navigate]);
+
+  useEffect(() => {
+    let wallets;
+    try {
+      if (groupData) {
+        wallets = groupData.wallets.map((w) => w.address);
+      }
+      setAllWallets(wallets);
+    } catch (err) {
+      return err;
+    }
+  }, [groupData]);
+
+  useEffect(() => {
+    const fetchActiveToken = async () => {
+      try {
+        let data = await getActiveToken(user.chatId);
+
+        let activeTokenAddress = data.address;
+        let activeTokenName = data.name;
+        console.log(activeTokenName);
+        setActiveToken(activeTokenName);
+
+        const tokenContract = new ethers.Contract(
+          activeTokenAddress,
+          tokenABI,
+          provider
+        );
+
+        let allBalance = [];
+
+        if (allWallets) {
+          for (let i = 0; i <= allWallets.length; i++) {
+            try {
+              const tx = await tokenContract.balanceOf(allWallets[i]);
+              let bal = ethers.formatEther(Number(tx).toString());
+              allBalance.push(bal);
+
+              if (allBalance.length == 20) {
+                setBalanceArray(allBalance);
+                console.log(allBalance);
+                break;
+              }
+            } catch (err) {
+              console.log(err);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching active token:", err);
+        setError(err.response?.data?.error || err.message);
+      }
+    };
+
+    fetchActiveToken();
+  }, [allWallets, balanceArray]);
 
   const handleCopy = (text, label) => {
     navigator.clipboard
@@ -177,6 +242,13 @@ function ViewWalletGroupPage() {
                       }
                     />
                   </Box>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    <strong>Balance:</strong>{" "}
+                    {balanceArray.length > 0
+                      ? balanceArray[index]
+                      : "Loading..."}{" "}
+                    - {activeToken}
+                  </Typography>
                 </ListItem>
               ))}
             </List>
