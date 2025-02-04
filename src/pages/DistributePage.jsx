@@ -59,6 +59,7 @@ function DistributePage() {
 
         // Listen for distribute transaction updates
         socket.on("distributeTransactionUpdate", (data) => {
+          console.log("Transaction update:", data);
           setTransactions((prev) => [...prev, data]);
         });
 
