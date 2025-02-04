@@ -41,7 +41,7 @@ function DistributePage() {
 
     // Function to initialize Socket.IO and setup event listeners
     const initializeSocket = () => {
-      if (user && token) {
+      if (user) {
         // Initialize Socket.IO client
         socket = io(SOCKET_SERVER_URL, {
           auth: {
@@ -55,8 +55,7 @@ function DistributePage() {
         });
 
         socket.on("connect", () => {
-          console.log("Socket connected.");
-        });
+          console.log("Socket connected.");});
 
         // Join the room with chatId
         socket.emit("join", user.chatId);
