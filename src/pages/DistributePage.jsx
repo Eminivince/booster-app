@@ -55,14 +55,14 @@ function DistributePage() {
         });
 
         socket.on("connect", () => {
-          console.log("Socket connected.");});
+          console.log("Socket connected.");
+        });
 
         // Join the room with chatId
         socket.emit("join", user.chatId);
 
         // Listen for distribute transaction updates
         socket.on("distributeTransactionUpdate", (data) => {
-          console.log("Transaction update:", data);
           setTransactions((prev) => [...prev, data]);
         });
 
@@ -107,7 +107,7 @@ function DistributePage() {
 
     setIsLoading(true);
     setResult("");
-    setTransactions([]); 
+    setTransactions([]);
 
     try {
       // Initiate the distribute process
@@ -117,24 +117,21 @@ function DistributePage() {
     } catch (err) {
       console.error("Error distributing AMB:", err);
 
-      // Now selectively handle error types:
       if (
         err.code === "ERR_NETWORK" ||
         err.message === "Network Error" ||
         err.name === "AxiosError"
       ) {
-        setResult("Network error. Retrying..."); // or something
+        setResult("Network error. Please check your connection and retry.");
       } else {
-        // For any other error, display it and stop loading
         setResult(
           err.response?.data?.error ||
             "An error occurred while distributing AMB."
         );
-        setIsLoading(false);
       }
+      setIsLoading(false);
     }
   };
-
 
   // If user is not logged in, prompt them to log in
   if (!user) {
@@ -160,9 +157,27 @@ function DistributePage() {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
-      <Paper elevation={6} sx={{ p: 4 }}>
-        <Box display="flex" flexDirection="column" alignItems="center" mb={2}>
+    <Container
+      maxWidth="sm"
+      sx={{
+        mt: { xs: 4, sm: 8 }, // smaller top margin on mobile
+        mb: { xs: 4, sm: 8 }, // smaller bottom margin on mobile
+        px: { xs: 2, sm: 0 }, // extra horizontal padding on mobile
+      }}>
+      <Paper
+        elevation={6}
+        sx={{
+          p: { xs: 2, sm: 4 }, // responsive padding
+          overflow: "hidden", // safeguard if content overflows
+        }}>
+        <Box
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          mb={2}
+          sx={{
+            textAlign: "center",
+          }}>
           <MonetizationOnIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
           <Typography component="h1" variant="h5">
             Distribute AMB
@@ -176,7 +191,11 @@ function DistributePage() {
                 ? "success"
                 : "error"
             }
-            sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
+            sx={{
+              mb: 2,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word", // wrap long error messages if needed
+            }}>
             {result}
           </Alert>
         )}
@@ -217,6 +236,7 @@ function DistributePage() {
           Back to Home
         </Button>
 
+        {/* Transaction Update List */}
         {transactions.length > 0 && (
           <Box mt={4}>
             <Typography variant="h6" gutterBottom>
@@ -226,10 +246,18 @@ function DistributePage() {
               {transactions.map((tx, index) => (
                 <ListItem key={index} divider>
                   <ListItemText
-                    primary={`Wallet: ${tx.wallet}`}
+                    primary={
+                      <Typography
+                        sx={{
+                          // This ensures the address won't overflow
+                          wordBreak: "break-all",
+                        }}>
+                        Wallet: {tx.wallet}
+                      </Typography>
+                    }
                     secondary={
                       tx.status === "success"
-                        ? `✅ Success: Distributed AMB. Tx Hash: ${tx.txHash}`
+                        ? `✅ Success: Distributed ${tx.amount} AMB. Tx Hash: ${tx.txHash}`
                         : tx.status === "failed"
                         ? `❌ Failed to distribute AMB.`
                         : tx.status === "error"
