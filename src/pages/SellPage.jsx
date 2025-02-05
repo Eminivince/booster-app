@@ -318,7 +318,7 @@ function SellPage() {
                   <TextField
                     label={`${wallet.address.toString().slice(0, 6)}... (${
                       walletBalances[wallet.address]
-                        ? Number(walletBalances[wallet.address]).toFixed(8)
+                        ? Number(walletBalances[wallet.address]).toFixed(5)
                         : "loading..."
                     } ${activeToken?.symbol || ""})`}
                     type="number"
