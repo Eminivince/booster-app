@@ -107,30 +107,34 @@ function DistributePage() {
 
     setIsLoading(true);
     setResult("");
-    setTransactions([]); // Reset previous transactions
+    setTransactions([]); 
 
     try {
       // Initiate the distribute process
       console.log("Distributing AMB...");
       await distributeAMB(user.chatId, amount.trim(), token);
-      // No need to set result here; it will be updated via Socket.IO events
+      setIsLoading(false);
     } catch (err) {
       console.error("Error distributing AMB:", err);
 
+      // Now selectively handle error types:
       if (
-        err.code != "ERR_NETWORK" ||
-        err.message != "Network Error" ||
-        err.name != "AxiosError"
+        err.code === "ERR_NETWORK" ||
+        err.message === "Network Error" ||
+        err.name === "AxiosError"
       ) {
+        setResult("Network error. Retrying..."); // or something
+      } else {
+        // For any other error, display it and stop loading
         setResult(
           err.response?.data?.error ||
             "An error occurred while distributing AMB."
         );
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
     }
   };
+
 
   // If user is not logged in, prompt them to log in
   if (!user) {
