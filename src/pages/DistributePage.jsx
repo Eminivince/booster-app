@@ -243,38 +243,37 @@ function DistributePage() {
               Transaction Updates
             </Typography>
             <List>
-              {transactions.map((tx, index) => (
-                <ListItem key={index} divider>
+              {transactions.map((tx) => (
+                <ListItem key={tx.txHash}>
                   <ListItemText
                     primary={
                       <Typography
+                        variant="body1"
                         sx={{
-                          // This ensures the address won't overflow
                           wordBreak: "break-all",
+                          overflowWrap: "anywhere",
                         }}>
+                        {/* Use the actual tx.wallet value here */}
                         Wallet: {tx.wallet}
                       </Typography>
                     }
                     secondary={
-                      tx.status === "success"
-                        ? `✅ Success: Distributed ${tx.amount} AMB. Tx Hash: ${tx.txHash}`
-                        : tx.status === "failed"
-                        ? `❌ Failed to distribute AMB.`
-                        : tx.status === "error"
-                        ? `❗ Error: ${tx.error}`
-                        : `⚠️ ${tx.status.replace("_", " ").toUpperCase()}`
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          wordBreak: "break-all",
+                          overflowWrap: "anywhere",
+                        }}>
+                        {tx.status === "success"
+                          ? `✅ Success: Distributed ${tx.amount} AMB. Tx Hash: ${tx.txHash}`
+                          : tx.status === "failed"
+                          ? `❌ Failed to distribute AMB.`
+                          : tx.status === "error"
+                          ? `❗ Error: ${tx.error}`
+                          : `⚠️ ${tx.status.replace("_", " ").toUpperCase()}`}
+                      </Typography>
                     }
                   />
-                  {tx.status === "success" && (
-                    <Chip label="Success" color="success" />
-                  )}
-                  {tx.status === "failed" && (
-                    <Chip label="Failed" color="error" />
-                  )}
-                  {tx.status === "error" && (
-                    <Chip label="Error" color="error" />
-                  )}
-                  {/* Add more chips if needed for other statuses */}
                 </ListItem>
               ))}
             </List>
