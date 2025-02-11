@@ -330,7 +330,6 @@ function SellPage() {
                     placeholder={
                       sellAmounts[wallet.address] ? "" : "Enter amount"
                     }
-                    required
                     fullWidth
                     disabled={isLoading}
                     InputLabelProps={{
