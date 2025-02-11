@@ -209,11 +209,11 @@ function SellPage() {
     }
 
     // Validate sell amounts: each must be a positive number
-    const amounts = Object.values(sellAmounts);
-    if (amounts.some((amt) => !amt.trim() || isNaN(amt))) {
-      setResult("Please enter valid sell amounts for all wallets.");
-      return;
-    }
+    // const amounts = Object.values(sellAmounts);
+    // if (amounts.some((amt) => !amt.trim() || isNaN(amt))) {
+    //   setResult("Please enter valid sell amounts for all wallets.");
+    //   return;
+    // }
 
     // Validate time range
     const { minDelayMinutes, maxDelayMinutes } = timeRange;
