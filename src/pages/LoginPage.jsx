@@ -148,7 +148,7 @@ function LoginPage() {
             fullWidth
             variant="text"
             color="secondary"
-            onClick={() => navigate("/register")} // Assuming there's a registration page
+            onClick={() => navigate("/signup")} // Assuming there's a registration page
             disabled={isLoading}>
             Don't have an account? Register
           </Button>
