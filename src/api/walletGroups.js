@@ -3,6 +3,8 @@ import axios from "axios";
 
 // const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5080/api";
 const API_BASE = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com/api";
+// const API_BASE = "http://localhost:5080/api";
+
 
 export async function getWalletGroups(chatId) {
   const res = await axios.get(`${API_BASE}/wallet-groups?chatId=${chatId}`);

@@ -25,6 +25,9 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 
 import { io } from "socket.io-client";
 
+import TransactionStateManager from "../components/TransactionStateManager";
+
+// const SOCKET_SERVER_URL = "http://localhost:5080";
 const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com";
 
 function DistributePage() {
@@ -35,6 +38,12 @@ function DistributePage() {
 
   const navigate = useNavigate();
   const { user, token } = useAuth(); // Get the logged-in user and token from context
+
+  const handleTransactionResume = (result) => {
+    // Handle the resumed transaction result
+    setTransactions([]);
+    setResult(`Transaction resumed. Result: ${JSON.stringify(result)}`);
+  };
 
   useEffect(() => {
     let socket;
@@ -55,6 +64,7 @@ function DistributePage() {
         });
 
         socket.on("connect", () => {
+          console.log("connected socket");
           console.log("Socket connected.");
         });
 
@@ -63,11 +73,13 @@ function DistributePage() {
 
         // Listen for distribute transaction updates
         socket.on("distributeTransactionUpdate", (data) => {
+          console.log("Received distribute transaction update:", data);
           setTransactions((prev) => [...prev, data]);
         });
 
         // Listen for distribute process completion
         socket.on("distributeProcessCompleted", (data) => {
+          console.log("Received distribute process completion:", data);
           setResult(
             `Distribution process completed.\nSuccess: ${data.successCount}, Fail: ${data.failCount}`
           );
@@ -164,6 +176,12 @@ function DistributePage() {
         mb: { xs: 4, sm: 8 }, // smaller bottom margin on mobile
         px: { xs: 2, sm: 0 }, // extra horizontal padding on mobile
       }}>
+      {user?.chatId && (
+        <TransactionStateManager
+          chatId={user.chatId}
+          onResume={handleTransactionResume}
+        />
+      )}
       <Paper
         elevation={6}
         sx={{

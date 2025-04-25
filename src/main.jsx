@@ -2,23 +2,50 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
-import { AuthProvider } from "./context/AuthContext"; // Ensure AuthProvider is correctly set up
+import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { AnimatePresence } from "framer-motion";
+import CssBaseline from "@mui/material/CssBaseline";
+import "./index.css";
 
 const theme = createTheme({
   palette: {
+    mode: "dark",
     primary: {
-      main: "#1976d2", // Customize your primary color
+      main: "#90caf9",
     },
     secondary: {
-      main: "#dc004e", // Customize your secondary color
+      main: "#f48fb1",
+    },
+    background: {
+      default: "#121212",
+      paper: "#1e1e1e",
     },
   },
   typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 700,
     },
-    // Add more typography settings as needed
+    button: {
+      textTransform: "none",
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+        },
+      },
+    },
   },
 });
 
@@ -26,7 +53,10 @@ ReactDOM.render(
   <React.StrictMode>
     <AuthProvider>
       <ThemeProvider theme={theme}>
-        <App />
+        <CssBaseline />
+        <AnimatePresence mode="wait">
+          <App />
+        </AnimatePresence>
       </ThemeProvider>
     </AuthProvider>
   </React.StrictMode>,

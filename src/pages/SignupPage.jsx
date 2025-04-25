@@ -1,7 +1,6 @@
-// frontend/src/pages/LoginPage.jsx
+// frontend/src/pages/SignupPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../api/login"; // the helper we made
 import { useAuth } from "../context/AuthContext";
 
 // Import MUI Components
@@ -15,32 +14,34 @@ import {
   Alert,
   Box,
 } from "@mui/material";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 
-function LoginPage() {
+function SignupPage() {
+  const [chatId, setChatId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState({ type: "", message: "" });
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { setUser } = useAuth(); // Keep using setUser as per your original code
+  const { setUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Input Validation
-    if (!username.trim()) {
-      setStatus({ type: "error", message: "Please enter your username." });
+    if (!chatId.trim() || !username.trim() || !password.trim()) {
+      setStatus({ type: "error", message: "All fields are required." });
       return;
     }
 
-    if (!password.trim()) {
-      setStatus({ type: "error", message: "Please enter your password." });
+    if (password !== confirmPassword) {
+      setStatus({ type: "error", message: "Passwords do not match." });
       return;
     }
 
-    if (password.trim().length < 6) {
+    if (password.length < 6) {
       setStatus({
         type: "error",
         message: "Password must be at least 6 characters long.",
@@ -52,20 +53,39 @@ function LoginPage() {
     setStatus({ type: "", message: "" });
 
     try {
-      const data = await loginUser(username.trim(), password.trim());
-      // data => { message, user: { chatId, activeWalletGroupId, ... } }
-      setUser(data.user); // store in context
-      setStatus({ type: "success", message: "Login successful!" });
-      // Navigate to home page after a short delay to show success message
+      const response = await fetch(
+        "https://bknd-node-deploy-d242c366d3a5.herokuapp.com/api/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chatId: chatId.trim(),
+            username: username.trim(),
+            password: password.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Registration failed");
+      }
+
+      setUser(data.user);
+      setStatus({ type: "success", message: "Registration successful!" });
+
+      // Navigate to home page after a short delay
       setTimeout(() => {
         navigate("/");
       }, 1000);
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Registration error:", error);
       setStatus({
         type: "error",
-        message:
-          "Login failed: " + (error.response?.data?.error || error.message),
+        message: error.message || "Registration failed. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -96,9 +116,9 @@ function LoginPage() {
             to="/">
             Manual Booster
           </Typography>
-          <LockOutlinedIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
+          <PersonAddIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
           <Typography component="h1" variant="h5">
-            Login
+            Sign Up
           </Typography>
         </Box>
 
@@ -109,6 +129,18 @@ function LoginPage() {
         )}
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            required
+            fullWidth
+            id="chatId"
+            label="Chat ID"
+            name="chatId"
+            autoComplete="chat-id"
+            margin="normal"
+            value={chatId}
+            onChange={(e) => setChatId(e.target.value)}
+            disabled={isLoading}
+          />
           <TextField
             required
             fullWidth
@@ -128,10 +160,22 @@ function LoginPage() {
             label="Password"
             type="password"
             id="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             margin="normal"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+          />
+          <TextField
+            required
+            fullWidth
+            name="confirmPassword"
+            label="Confirm Password"
+            type="password"
+            id="confirmPassword"
+            margin="normal"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={isLoading}
           />
           <Button
@@ -142,15 +186,15 @@ function LoginPage() {
             disabled={isLoading}
             sx={{ mt: 3, mb: 2 }}
             startIcon={isLoading && <CircularProgress size={20} />}>
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? "Signing up..." : "Sign Up"}
           </Button>
           <Button
             fullWidth
             variant="text"
             color="secondary"
-            onClick={() => navigate("/register")} // Assuming there's a registration page
+            onClick={() => navigate("/login")}
             disabled={isLoading}>
-            Don't have an account? Register
+            Already have an account? Login
           </Button>
         </Box>
       </Paper>
@@ -158,4 +202,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+export default SignupPage;

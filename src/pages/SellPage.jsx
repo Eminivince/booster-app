@@ -7,6 +7,7 @@ import { startSell } from "../api/transactions"; // Ensure this function accepts
 import { useAuth } from "../context/AuthContext";
 import { getActiveWalletGroup } from "../api/walletGroups"; // Using wallet groups for sell amounts
 import { getActiveToken } from "../api/tokens";
+import TransactionStateManager from "../components/TransactionStateManager";
 
 // MUI Components
 import {
@@ -28,6 +29,7 @@ import {
 import SellIcon from "@mui/icons-material/Sell";
 import { io } from "socket.io-client";
 
+// const SOCKET_SERVER_URL = "http://localhost:5080";
 const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com";
 
 // Minimal ERC20 ABI to read balance and decimals
@@ -37,7 +39,7 @@ const ERC20_ABI = [
 ];
 
 // Create an ethers provider using your RPC URL
-const provider = new ethers.JsonRpcProvider("https://network.ambrosus.io");
+const provider = new ethers.JsonRpcProvider("https://api.mainnet.abs.xyz");
 
 function SellPage() {
   const [walletGroup, setWalletGroup] = useState(null);
@@ -53,6 +55,13 @@ function SellPage() {
   const [transactions, setTransactions] = useState([]);
 
   const navigate = useNavigate();
+
+  const handleTransactionResume = (result) => {
+    // Handle the resumed transaction result
+    setTransactions([]);
+    setResult(`Transaction resumed. Result: ${JSON.stringify(result)}`);
+  };
+
   const { user, token } = useAuth();
 
   // Initialize Socket.IO and fetch wallet group on mount
@@ -292,6 +301,12 @@ function SellPage() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      {user?.chatId && (
+        <TransactionStateManager
+          chatId={user.chatId}
+          onResume={handleTransactionResume}
+        />
+      )}
       <Paper elevation={6} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
           Start Sell Process
@@ -428,10 +443,16 @@ function SellPage() {
               {transactions.map((tx, index) => (
                 <ListItem key={index} divider>
                   <ListItemText
-                    primary={`Wallet: ${tx.wallet}`}
+                    primary={`- Wallet: ${tx.wallet.slice(
+                      0,
+                      7
+                    )}...${tx.wallet.slice(35)}`}
                     secondary={
                       tx.status === "success"
-                        ? `✅ Success: Sold tokens. Tx Hash: ${tx.txHash}`
+                        ? `✅ Success: Sold tokens. Tx Hash: ${tx.txHash.slice(
+                            0,
+                            10
+                          )}...`
                         : tx.status === "failed"
                         ? `❌ Failed to sell tokens.`
                         : tx.status === "error"

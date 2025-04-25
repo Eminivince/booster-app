@@ -1,11 +1,12 @@
 // frontend/src/pages/BuyPage.js
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { startBuy } from "../api/transactions";
 import { useAuth } from "../context/AuthContext"; // Import AuthContext
 import { getActiveWalletGroup } from "../api/walletGroups"; // Import API to fetch active wallet group
+import TransactionStateManager from "../components/TransactionStateManager";
 
 // Import MUI Components
 import {
@@ -26,6 +27,7 @@ import {
 
 import { io } from "socket.io-client";
 
+// const SOCKET_SERVER_URL = "http://localhost:5080";
 const SOCKET_SERVER_URL = "https://bknd-node-deploy-d242c366d3a5.herokuapp.com";
 
 function BuyPage() {
@@ -41,6 +43,12 @@ function BuyPage() {
 
   const navigate = useNavigate();
   const { user, token } = useAuth(); // Get the logged-in user and token from context
+
+  const handleTransactionResume = (result) => {
+    // Handle the resumed transaction result
+    setTransactions([]);
+    setResult(`Transaction resumed. Result: ${JSON.stringify(result)}`);
+  };
 
   useEffect(() => {
     let socket;
@@ -62,16 +70,22 @@ function BuyPage() {
           console.error("Socket connection error:", err.message);
         });
 
+        socket.on("connect", () => {
+          console.log("connected socket");
+          console.log("Socket connected.");
+        });
         // Join the room with chatId
         socket.emit("join", user.chatId);
 
         // Listen for buy transaction updates
         socket.on("buyTransactionUpdate", (data) => {
+          console.log("Received buy transaction update:", data);
           setTransactions((prev) => [...prev, data]);
         });
 
         // Listen for buy process completion
         socket.on("buyProcessCompleted", (data) => {
+          console.log("Received buy process completion:", data);
           setResult(
             `Buy process completed.\nSuccess: ${data.successCount}, Fail: ${data.failCount}`
           );
@@ -104,7 +118,7 @@ function BuyPage() {
       const group = await getActiveWalletGroup(user.chatId);
       setWalletGroup(group);
 
-      // Initialize buyAmounts with default values (e.g., empty strings)
+      // Initialize buyAmounts with empty strings for each wallet
       const initialAmounts = {};
       group.wallets.forEach((wallet) => {
         initialAmounts[wallet.address] = "";
@@ -207,7 +221,7 @@ function BuyPage() {
       <Container maxWidth="sm" sx={{ mt: 8 }}>
         <Paper elevation={6} sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="h5" gutterBottom>
-            Start Buy Process
+            Start Buying
           </Typography>
           <Typography variant="body1" gutterBottom>
             Please log in to start buying tokens.
@@ -225,9 +239,15 @@ function BuyPage() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      {user?.chatId && (
+        <TransactionStateManager
+          chatId={user.chatId}
+          onResume={handleTransactionResume}
+        />
+      )}
       <Paper elevation={6} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
-          Start Buy Process
+          Start Buying
         </Typography>
 
         {result && (
@@ -252,13 +272,19 @@ function BuyPage() {
                     label={wallet.address}
                     type="number"
                     inputProps={{ step: "0.0001", min: "0" }}
-                    value={buyAmounts[wallet.address]}
+                    value={buyAmounts[wallet.address] || ""}
                     onChange={(e) =>
                       handleAmountChange(wallet.address, e.target.value)
+                    }
+                    placeholder={
+                      buyAmounts[wallet.address] ? "" : "Enter amount"
                     }
                     required
                     fullWidth
                     disabled={isLoading}
+                    InputLabelProps={{
+                      shrink: true, // Keep label shrunk to avoid overlap
+                    }}
                   />
                 </Grid>
               ))}
@@ -336,10 +362,13 @@ function BuyPage() {
               {transactions.map((tx, index) => (
                 <ListItem key={index} divider>
                   <ListItemText
-                    primary={`- ${index + 1} Wallet: ${tx.wallet}`}
+                    primary={`- Wallet: ${tx.wallet.slice(0, 7)}...${tx.wallet.slice(35)}`}
                     secondary={
                       tx.status === "success"
-                        ? `✅ Success: Bought tokens. Tx Hash: ${tx.txHash}`
+                        ? `✅ Success: Bought tokens. Tx Hash: ${tx.txHash.slice(
+                            0,
+                            10
+                          )}...`
                         : tx.status === "failed"
                         ? `❌ Failed to buy tokens.`
                         : tx.status === "error"
