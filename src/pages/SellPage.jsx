@@ -39,7 +39,7 @@ const ERC20_ABI = [
 ];
 
 // Create an ethers provider using your RPC URL
-const provider = new ethers.JsonRpcProvider("https://api.mainnet.abs.xyz");
+const provider = new ethers.JsonRpcProvider("https://network.ambrosus.io");
 
 function SellPage() {
   const [walletGroup, setWalletGroup] = useState(null);

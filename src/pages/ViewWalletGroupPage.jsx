@@ -45,7 +45,7 @@ function ViewWalletGroupPage() {
     message: "",
   });
 
-  const provider = new ethers.JsonRpcProvider("https://api.mainnet.abs.xyz");
+  const provider = new ethers.JsonRpcProvider("https://network.ambrosus.io");
 
   useEffect(() => {
     if (!user) {
