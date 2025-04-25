@@ -133,7 +133,7 @@ function SignupPage() {
             required
             fullWidth
             id="chatId"
-            label="Chat ID"
+            label="Preferred ID"
             name="chatId"
             autoComplete="chat-id"
             margin="normal"
